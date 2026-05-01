@@ -35,7 +35,13 @@ export function Home() {
     length: quoteLength
   });
 
-  const quotes = data?.pages.flatMap(page => page) || [];
+  // Use the flattened allQuotes from select() — fallback to manual flatten
+  const quotes = (data as any)?.allQuotes ?? data?.pages.flatMap(p => (p as any).quotes ?? p) ?? [];
+
+  // Reset scroll position when category changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [activeCategory]);
 
   // Infinite Scroll Observer
   useEffect(() => {
@@ -72,7 +78,7 @@ export function Home() {
         </div>
       </header>
 
-      {/* Category Selector (Instagram Style) */}
+      {/* Category Selector */}
       <div className={cn(
         "px-6 py-4 flex gap-4 overflow-x-auto scrollbar-none sticky top-32 z-10 backdrop-blur-sm border-b",
         isDark ? "bg-brand-ink/80 border-white/5" : "bg-brand-paper/80 border-brand-ink/5"
@@ -83,8 +89,8 @@ export function Home() {
             onClick={() => setActiveCategory(cat)}
             className={cn(
               "flex items-center gap-2 px-4 py-2 border-2 transition-all whitespace-nowrap text-[10px] font-black uppercase tracking-widest",
-              activeCategory.title === cat.title 
-                ? isDark ? "bg-white text-brand-ink border-white shadow-[4px_4px_0_0_#FF3E00]" : "bg-brand-ink text-white border-brand-ink shadow-[4px_4px_0_0_#FF3E00]" 
+              activeCategory.title === cat.title
+                ? isDark ? "bg-white text-brand-ink border-white shadow-[4px_4px_0_0_#FF3E00]" : "bg-brand-ink text-white border-brand-ink shadow-[4px_4px_0_0_#FF3E00]"
                 : isDark ? "bg-brand-ink text-white/60 border-white/10" : "bg-white text-brand-ink/60 border-brand-ink/10"
             )}
           >
@@ -111,18 +117,28 @@ export function Home() {
         ) : (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {quotes.map((quote, idx) => (
+              {quotes.map((quote: any, idx: number) => (
                 <QuoteCard key={`${quote.id}-${idx}`} quote={quote} />
               ))}
             </div>
-            
+
             {/* End of list trigger */}
             <div ref={loaderTrigger} className="py-20 flex flex-col items-center justify-center gap-4 col-span-full">
-              {hasNextPage ? (
+              {isFetchingNextPage ? (
                 <>
                   <Loader2 className="animate-spin text-brand-primary" size={32} />
                   <span className={cn("text-[10px] font-mono uppercase", isDark ? "text-white/20" : "text-brand-ink/40")}>Synchronizing_Wisdom...</span>
                 </>
+              ) : hasNextPage ? (
+                <button
+                  onClick={() => fetchNextPage()}
+                  className={cn(
+                    "px-6 py-3 border-2 text-[10px] font-black uppercase tracking-widest transition-all",
+                    isDark ? "border-white text-white hover:bg-white hover:text-brand-ink" : "border-brand-ink text-brand-ink hover:bg-brand-ink hover:text-white"
+                  )}
+                >
+                  Load More
+                </button>
               ) : (
                 <div className={cn("text-center py-10 border-t w-full", isDark ? "border-white/10" : "border-brand-ink/10")}>
                   <p className={cn("text-[10px] font-mono uppercase tracking-[0.3em]", isDark ? "text-white/10" : "text-brand-ink/30")}>
