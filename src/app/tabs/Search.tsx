@@ -28,7 +28,8 @@ export function Search() {
     length: quoteLength
   });
 
-  const results = data?.pages.flatMap(page => page) || [];
+  // Use allQuotes from select() — fallback to manual flatten
+  const results = (data as any)?.allQuotes ?? data?.pages.flatMap(p => (p as any).quotes ?? p) ?? [];
 
   // Observer for Infinite Scroll
   useEffect(() => {
@@ -48,6 +49,7 @@ export function Search() {
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setSearchTrigger(query);
+    setActiveMood(null); // clear mood filter when doing a text search
   };
 
   return (
@@ -70,7 +72,7 @@ export function Search() {
             onChange={(e) => setQuery(e.target.value)}
             className="w-full bg-white border-2 border-brand-ink py-4 pl-6 pr-16 outline-none focus:bg-brand-primary/5 transition-all font-mono text-sm tracking-tight"
           />
-          <button 
+          <button
             type="submit"
             className="absolute right-2 top-1/2 -translate-y-1/2 bg-brand-ink text-white p-2 border border-brand-ink hover:bg-brand-primary transition-all"
           >
@@ -82,11 +84,15 @@ export function Search() {
           {moods.map(mood => (
             <button
               key={mood}
-              onClick={() => setActiveMood(activeMood === mood ? null : mood)}
+              onClick={() => {
+                setActiveMood(activeMood === mood ? null : mood);
+                setSearchTrigger(''); // clear text search when picking a mood
+                setQuery('');
+              }}
               className={cn(
                 "px-3 py-1.5 text-[9px] font-black uppercase tracking-widest transition-all border-2",
-                activeMood === mood 
-                  ? "bg-brand-primary text-white border-brand-primary shadow-[2px_2px_0_0_#1a1a1a]" 
+                activeMood === mood
+                  ? "bg-brand-primary text-white border-brand-primary shadow-[2px_2px_0_0_#1a1a1a]"
                   : "bg-white text-brand-ink/60 border-brand-ink/10"
               )}
             >
@@ -105,11 +111,11 @@ export function Search() {
           ) : results.length > 0 ? (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {results.map((quote, idx) => (
+                {results.map((quote: any, idx: number) => (
                   <QuoteCard key={`${quote.id}-${idx}`} quote={quote} />
                 ))}
               </div>
-              
+
               <div ref={loaderTrigger} className="py-10 flex justify-center">
                 {isFetchingNextPage && <Loader2 className="animate-spin text-brand-primary" size={24} />}
                 {!hasNextPage && (
@@ -117,6 +123,11 @@ export function Search() {
                 )}
               </div>
             </>
+          ) : !isLoading && (searchTrigger || activeMood) ? (
+            <div className="py-20 flex flex-col items-center text-center border-2 border-dashed border-brand-ink/20 opacity-40">
+              <SearchIcon size={32} className="mb-2" />
+              <p className="text-[10px] font-mono uppercase tracking-[0.3em]">No_Results_Found</p>
+            </div>
           ) : !isLoading ? (
             <div className="py-20 flex flex-col items-center text-center border-2 border-dashed border-brand-ink/20 opacity-40">
               <SearchIcon size={32} className="mb-2" />
